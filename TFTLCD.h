@@ -8,7 +8,7 @@
 #endif
 
 // comment or uncomment the next line for special pinout!
-//#define USE_ADAFRUIT_SHIELD_PINOUT
+#define USE_ADAFRUIT_SHIELD_PINOUT
 
 
 // register names from Peter Barrett's Microtouch code
@@ -77,6 +77,9 @@ class TFTLCD : public Print {
   // drawing primitives!
   void drawPixel(uint16_t x, uint16_t y, uint16_t color);
   void fillScreen(uint16_t color);
+  void cls();
+  void  fillColor(uint16_t color);
+  uint16_t lcdGetPixel(uint16_t x, uint16_t y);
   void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
   void drawFastLine(uint16_t x0, uint16_t y0, uint16_t l, uint16_t color, uint8_t flag);
   void drawVerticalLine(uint16_t x0, uint16_t y0, uint16_t length, uint16_t color);
