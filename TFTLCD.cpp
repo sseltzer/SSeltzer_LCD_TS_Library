@@ -1,6 +1,7 @@
 #include "TFTLCD.h"
 
 // Graphics library by ladyada/adafruit with init code from Rossum 
+// Modified by sseltzer.
 // MIT license
 
 #define DATAPORT1 PORTD
@@ -460,7 +461,7 @@ void TFTLCD::cls() {
       *wrportreg |=  wrpin;
       *wrportreg &= nwrpin;
       *wrportreg |=  wrpin;
-     *wrportreg &= nwrpin;
+      *wrportreg &= nwrpin;
       *wrportreg |=  wrpin;
       *wrportreg &= nwrpin;
       *wrportreg |=  wrpin;
@@ -480,48 +481,61 @@ void  TFTLCD::fillColor(uint16_t color) {
   writeRegister(0x0020, 0);     // GRAM Address Set (Horizontal Address) (R20h)
   writeRegister(0x0021, 0);     // GRAM Address Set (Vertical Address) (R21h)
   writeCommand(0x0022);         // Write Data to GRAM (R22h)
-  uint32_t i = 19200;  //320 * 240 DOES NOT DO MATHS!?
   *portOutputRegister(csport) &= ~cspin;
   *portOutputRegister(cdport) |= cdpin;
   *portOutputRegister(rdport) |= rdpin;
   *portOutputRegister(wrport) |= wrpin;
   volatile uint8_t *wrportreg = portOutputRegister(wrport);
+  /* 
+    Send the data. You 
+  */
+  // 0x2F = 0010 1111     0xD0 = 1101 0000
+  uint8_t portd_highbyte = (PORTD & 0x2F) | ((color >> 8) & 0xD0);
+  uint8_t portb_highbyte = (PORTB & 0xD0) | ((color >> 8) & 0x2F);
+  uint8_t portd_lowbyte  = (PORTD & 0x2F) | (color        & 0xD0);
+  uint8_t portb_lowbyte  = (PORTB & 0xD0) | (color        & 0x2F);
+  
   uint8_t highbyte = (color >> 8) & 0xFF;
   uint8_t lowbyte  = color & 0xFF;
   uint8_t nwrpin = ~wrpin;
+  
+  // In order to increase speed
+  uint32_t i = 76800; // 320 * 240 / 4.
   while (i--) {
-      PORTD = highbyte;
-      PORTB = highbyte;
+      PORTD = portd_highbyte; // Send high byte over port D. (LCD_DATA_5_5V, LCD_DATA_7_5V, LCD_DATA_8_5V)
+      PORTB = portb_highbyte; // Send high byte over port B. (LCD_DATA_1_5V, LCD_DATA_2_5V, LCD_DATA_3_5V, LCD_DATA_4_5V, LCD_DATA_6_5V)
+      *wrportreg &= nwrpin;   // Strobe to transmit the data.
+      *wrportreg |=  wrpin;   // Strobe to transmit the data.
+      PORTD = portd_lowbyte;  // Send high byte over port D.
+      PORTB = portb_lowbyte;  // Send high byte over port B.
+      *wrportreg &= nwrpin;   // Strobe to transmit the data.
+      *wrportreg |=  wrpin;   // Strobe to transmit the data.
+      // Repeat cycle 4 times.
+      /*
+      PORTD = portd_highbyte;
+      PORTB = portb_highbyte;
       *wrportreg &= nwrpin;
       *wrportreg |=  wrpin;
-      PORTD = lowbyte;
-      PORTB = lowbyte;
+      PORTD = portd_lowbyte;
+      PORTB = portb_lowbyte;
       *wrportreg &= nwrpin;
       *wrportreg |=  wrpin;
-      PORTD = highbyte;
-      PORTB = highbyte;
+      PORTD = portd_highbyte;
+      PORTB = portb_highbyte;
       *wrportreg &= nwrpin;
       *wrportreg |=  wrpin;
-      PORTD = lowbyte;
-      PORTB = lowbyte;
+      PORTD = portd_lowbyte;
+      PORTB = portb_lowbyte;
       *wrportreg &= nwrpin;
       *wrportreg |=  wrpin;
-      PORTD = highbyte;
-      PORTB = highbyte;
+      PORTD = portd_highbyte;
+      PORTB = portb_highbyte;
       *wrportreg &= nwrpin;
       *wrportreg |=  wrpin;
-      PORTD = lowbyte;
-      PORTB = lowbyte;
+      PORTD = portd_lowbyte;
+      PORTB = portb_lowbyte;
       *wrportreg &= nwrpin;
-      *wrportreg |=  wrpin;
-      PORTD = highbyte;
-      PORTB = highbyte;
-      *wrportreg &= nwrpin;
-      *wrportreg |=  wrpin;
-      PORTD = lowbyte;
-      PORTB = lowbyte;
-      *wrportreg &= nwrpin;
-      *wrportreg |=  wrpin; 
+      *wrportreg |=  wrpin;*/
   }
   *portOutputRegister(csport) |= cspin;
 }

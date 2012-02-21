@@ -1,4 +1,5 @@
 // Graphics library by ladyada/adafruit with init code from Rossum 
+// Modified by sseltzer.
 // MIT license
 
 #if ARDUINO >= 100

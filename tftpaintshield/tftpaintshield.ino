@@ -1,3 +1,4 @@
+// Modified by sseltzer.
 #include "TFTLCD.h"
 #include "TouchScreen.h"
 

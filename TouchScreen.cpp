@@ -1,6 +1,7 @@
 // Touch screen library with X Y and Z (pressure) readings as well
 // as oversampling to avoid 'bouncing'
 // (c) ladyada / adafruit
+// Modified by sseltzer.
 // Code under MIT License
 
 #include "pins_arduino.h"

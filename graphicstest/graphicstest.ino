@@ -1,3 +1,4 @@
+// Modified by sseltzer.
 // The control pins can connect to any pins but we'll use the 
 // analog lines since that means we can double up the pins
 // with the touch screen (see the TFT paint example)
