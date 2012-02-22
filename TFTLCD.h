@@ -1,4 +1,5 @@
 // Graphics library by ladyada/adafruit with init code from Rossum 
+// Modified by sseltzer.
 // MIT license
 
 #if ARDUINO >= 100
@@ -8,7 +9,7 @@
 #endif
 
 // comment or uncomment the next line for special pinout!
-//#define USE_ADAFRUIT_SHIELD_PINOUT
+#define USE_ADAFRUIT_SHIELD_PINOUT
 
 
 // register names from Peter Barrett's Microtouch code
@@ -70,24 +71,21 @@
 
 class TFTLCD : public Print {
  public:
-  TFTLCD(uint8_t cs, uint8_t cd, uint8_t wr, uint8_t rd, uint8_t reset);
+  TFTLCD(uint8_t cs, uint8_t rs, uint8_t wr, uint8_t rd, uint8_t reset);
 
   uint16_t Color565(uint8_t r, uint8_t g, uint8_t b);
 
   // drawing primitives!
-  void drawPixel(uint16_t x, uint16_t y, uint16_t color);
   void fillScreen(uint16_t color);
+  uint16_t lcdGetPixel(uint16_t x, uint16_t y);
+  
+  void drawPixel(uint16_t x, uint16_t y, uint16_t color);
   void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
   void drawFastLine(uint16_t x0, uint16_t y0, uint16_t l, uint16_t color, uint8_t flag);
   void drawVerticalLine(uint16_t x0, uint16_t y0, uint16_t length, uint16_t color);
   void drawHorizontalLine(uint16_t x0, uint16_t y0, uint16_t length, uint16_t color);
-  void drawTriangle(uint16_t x0, uint16_t y0,
-			  uint16_t x1, uint16_t y1,
-			  uint16_t x2, uint16_t y2, uint16_t color);
-  void fillTriangle(int32_t x0, int32_t y0,
-			  int32_t x1, int32_t y1,
-		    int32_t x2, int32_t y2, 
-		    uint16_t color);
+  void drawTriangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color);
+  void fillTriangle(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, uint16_t color);
   void drawRect(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h, uint16_t color);
   void fillRect(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h, uint16_t color);
   void drawRoundRect(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h, uint16_t radius, uint16_t color);
@@ -145,10 +143,10 @@ class TFTLCD : public Print {
 
   uint8_t read8(void);
 
-  uint8_t _cs, _cd, _reset, _wr, _rd;
+  uint8_t _cs, _rs, _reset, _wr, _rd;
 
-  uint8_t csport, cdport, wrport, rdport;
-  uint8_t cspin, cdpin, wrpin, rdpin;
+  uint8_t csport, rsport, wrport, rdport;
+  uint8_t cspin, rspin, wrpin, rdpin;
 
   uint16_t _width, _height;
   uint8_t textsize;

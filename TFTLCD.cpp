@@ -1,42 +1,19 @@
 #include "TFTLCD.h"
 
 // Graphics library by ladyada/adafruit with init code from Rossum 
+// Modified by sseltzer.
 // MIT license
 
-#ifdef USE_ADAFRUIT_SHIELD_PINOUT
-// special defines for the dataport
- #define DATAPORT1 PORTD
- #define DATAPIN1 PIND
- #define DATADDR1 DDRD
+#define DATAPORT1 PORTD
+#define DATAPIN1 PIND
+#define DATADDR1 DDRD
 
- #define DATAPORT2 PORTB
- #define DATAPIN2 PINB
- #define DATADDR2 DDRB
+#define DATAPORT2 PORTB
+#define DATAPIN2 PINB
+#define DATADDR2 DDRB
 
- #define DATA1_MASK 0xD0
- #define DATA2_MASK 0x2F
-
-// for mega & shield usage, we just hardcoded it (its messy)
-
-#else
- // for the breakout board tutorial, two ports are used :/
- #define DATAPORT1 PORTD
- #define DATAPIN1  PIND
- #define DATADDR1  DDRD
-
- #define DATAPORT2 PORTB
- #define DATAPIN2  PINB
- #define DATADDR2  DDRB
-
- #define DATA1_MASK 0xFC  // top 6 bits
- #define DATA2_MASK 0x03  // bottom 2 bits
-
- // Megas have lots of pins, we'll use port A - all 8 bits in a row - pins 22 thru 29
- #define MEGA_DATAPORT PORTA
- #define MEGA_DATAPIN  PINA
- #define MEGA_DATADDR  DDRA
-#endif
-
+#define DATA1_MASK 0xD0
+#define DATA2_MASK 0x2F
 
 #include "glcdfont.c"
 #include <avr/pgmspace.h>
@@ -93,8 +70,7 @@ void TFTLCD::write(uint8_t c) {
 #endif
 }
 
-void TFTLCD::drawString(uint16_t x, uint16_t y, char *c, 
-			uint16_t color, uint8_t size) {
+void TFTLCD::drawString(uint16_t x, uint16_t y, char *c, uint16_t color, uint8_t size) {
   while (c[0] != 0) {
     drawChar(x, y, c[0], color, size);
     x += size*6;
@@ -102,8 +78,7 @@ void TFTLCD::drawString(uint16_t x, uint16_t y, char *c,
   }
 }
 // draw a character
-void TFTLCD::drawChar(uint16_t x, uint16_t y, char c, 
-		      uint16_t color, uint8_t size) {
+void TFTLCD::drawChar(uint16_t x, uint16_t y, char c, uint16_t color, uint8_t size) {
   for (uint8_t i =0; i<5; i++ ) {
     uint8_t line = pgm_read_byte(font+(c*5)+i);
     for (uint8_t j = 0; j<8; j++) {
@@ -120,17 +95,13 @@ void TFTLCD::drawChar(uint16_t x, uint16_t y, char c,
 }
 
 // draw a triangle!
-void TFTLCD::drawTriangle(uint16_t x0, uint16_t y0,
-			  uint16_t x1, uint16_t y1,
-			  uint16_t x2, uint16_t y2, uint16_t color)
-{
+void TFTLCD::drawTriangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color) {
   drawLine(x0, y0, x1, y1, color);
   drawLine(x1, y1, x2, y2, color);
   drawLine(x2, y2, x0, y0, color); 
 }
 
-void TFTLCD::fillTriangle ( int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, uint16_t color)
-{
+void TFTLCD::fillTriangle(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, uint16_t color) {
   if (y0 > y1) {
     swap(y0, y1); swap(x0, x1);
   }
@@ -197,8 +168,7 @@ uint16_t TFTLCD::Color565(uint8_t r, uint8_t g, uint8_t b) {
 }
 
 // draw a rectangle
-void TFTLCD::drawRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, 
-		      uint16_t color) {
+void TFTLCD::drawRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color) {
   // smarter version
   drawHorizontalLine(x, y, w, color);
   drawHorizontalLine(x, y+h-1, w, color);
@@ -207,8 +177,7 @@ void TFTLCD::drawRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
 }
 
 // draw a rounded rectangle
-void TFTLCD::drawRoundRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t r,
-			   uint16_t color) {
+void TFTLCD::drawRoundRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t r, uint16_t color) {
   // smarter version
   drawHorizontalLine(x+r, y, w-2*r, color);
   drawHorizontalLine(x+r, y+h-1, w-2*r, color);
@@ -223,8 +192,7 @@ void TFTLCD::drawRoundRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint1
 
 
 // fill a rounded rectangle
-void TFTLCD::fillRoundRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t r,
-			   uint16_t color) {
+void TFTLCD::fillRoundRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t r, uint16_t color) {
   // smarter version
   fillRect(x+r, y, w-2*r, h, color);
 
@@ -242,9 +210,7 @@ void TFTLCD::fillCircle(uint16_t x0, uint16_t y0, uint16_t r, uint16_t color) {
 
 
 // used to do circles and roundrects!
-void TFTLCD::fillCircleHelper(uint16_t x0, uint16_t y0, uint16_t r, uint8_t cornername, uint16_t delta,
-			uint16_t color) {
-
+void TFTLCD::fillCircleHelper(uint16_t x0, uint16_t y0, uint16_t r, uint8_t cornername, uint16_t delta, uint16_t color) {
   int16_t f = 1 - r;
   int16_t ddF_x = 1;
   int16_t ddF_y = -2 * r;
@@ -275,8 +241,7 @@ void TFTLCD::fillCircleHelper(uint16_t x0, uint16_t y0, uint16_t r, uint8_t corn
 
 // draw a circle outline
 
-void TFTLCD::drawCircle(uint16_t x0, uint16_t y0, uint16_t r, 
-			uint16_t color) {
+void TFTLCD::drawCircle(uint16_t x0, uint16_t y0, uint16_t r, uint16_t color) {
   drawPixel(x0, y0+r, color);
   drawPixel(x0, y0-r, color);
   drawPixel(x0+r, y0, color);
@@ -285,8 +250,7 @@ void TFTLCD::drawCircle(uint16_t x0, uint16_t y0, uint16_t r,
   drawCircleHelper(x0, y0, r, 0xF, color);
 }
 
-void TFTLCD::drawCircleHelper(uint16_t x0, uint16_t y0, uint16_t r, uint8_t cornername,
-			uint16_t color) {
+void TFTLCD::drawCircleHelper(uint16_t x0, uint16_t y0, uint16_t r, uint8_t cornername, uint16_t color) {
   int16_t f = 1 - r;
   int16_t ddF_x = 1;
   int16_t ddF_y = -2 * r;
@@ -323,30 +287,23 @@ void TFTLCD::drawCircleHelper(uint16_t x0, uint16_t y0, uint16_t r, uint8_t corn
 }
 
 // fill a rectangle
-void TFTLCD::fillRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, 
-		      uint16_t fillcolor) {
+void TFTLCD::fillRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t fillcolor) {
   // smarter version
-  while (h--)
-    drawHorizontalLine(x, y++, w, fillcolor);
+  while (h--) drawHorizontalLine(x, y++, w, fillcolor);
 }
 
 
-void TFTLCD::drawVerticalLine(uint16_t x, uint16_t y, uint16_t length, uint16_t color)
-{
+void TFTLCD::drawVerticalLine(uint16_t x, uint16_t y, uint16_t length, uint16_t color) {
   if (x >= _width) return;
-
   drawFastLine(x,y,length,color,1);
 }
 
-void TFTLCD::drawHorizontalLine(uint16_t x, uint16_t y, uint16_t length, uint16_t color)
-{
+void TFTLCD::drawHorizontalLine(uint16_t x, uint16_t y, uint16_t length, uint16_t color) {
   if (y >= _height) return;
   drawFastLine(x,y,length,color,0);
 }
 
-void TFTLCD::drawFastLine(uint16_t x, uint16_t y, uint16_t length, 
-			  uint16_t color, uint8_t rotflag)
-{
+void TFTLCD::drawFastLine(uint16_t x, uint16_t y, uint16_t length, uint16_t color, uint8_t rotflag) {
   uint16_t newentrymod;
 
   switch (rotation) {
@@ -392,17 +349,15 @@ void TFTLCD::drawFastLine(uint16_t x, uint16_t y, uint16_t length,
 
   *portOutputRegister(csport) &= ~cspin;
   //digitalWrite(_cs, LOW);
-  *portOutputRegister(cdport) |= cdpin;
-  //digitalWrite(_cd, HIGH);
+  *portOutputRegister(rsport) |= rspin;
+  //digitalWrite(_rs, HIGH);
   *portOutputRegister(rdport) |= rdpin;
   //digitalWrite(_rd, HIGH);
   *portOutputRegister(wrport) |= wrpin;
   //digitalWrite(_wr, HIGH);
 
   setWriteDir();
-  while (length--) {
-    writeData_unsafe(color); 
-  }
+  while (length--) writeData_unsafe(color); 
 
   // set back to default
   *portOutputRegister(csport) |= cspin;
@@ -455,30 +410,84 @@ void TFTLCD::drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
   }
 }
 
+uint16_t TFTLCD::lcdGetPixel(uint16_t x, uint16_t y) {
+  writeRegister(0x0020, x);     // GRAM Address Set (Horizontal Address) (R20h)
+  writeRegister(0x0021, y);     // GRAM Address Set (Vertical Address) (R21h)
+  writeCommand(0x0022);         // Write Data to GRAM (R22h)
+  return readData();
+}
 
-void TFTLCD::fillScreen(uint16_t color) {
-  goHome();
-  uint32_t i;
-  
-  i = 320;
-  i *= 240;
-  
+void  TFTLCD::fillScreen(uint16_t color) {
+  writeRegister(0x0020, 0);     // GRAM Address Set (Horizontal Address) (R20h)
+  writeRegister(0x0021, 0);     // GRAM Address Set (Vertical Address) (R21h)
+  writeCommand(0x0022);         // Write Data to GRAM (R22h)
   *portOutputRegister(csport) &= ~cspin;
-  //digitalWrite(_cs, LOW);
-  *portOutputRegister(cdport) |= cdpin;
-  //digitalWrite(_cd, HIGH);
+  *portOutputRegister(rsport) |= rspin;
   *portOutputRegister(rdport) |= rdpin;
-  //digitalWrite(_rd, HIGH);
   *portOutputRegister(wrport) |= wrpin;
-  //digitalWrite(_wr, HIGH);
-
-  setWriteDir();
+  DDRD |= 0xD0;
+  DDRB |= 0x2F;
+  /* 
+  This masking and two port data transmit is due to the fact that the 8 data pins are on 
+	D4, D6, D7, D8, D9, D10, D11, D13. Not sure why all of the data pins are not on PORTD, 
+	so all transmission could be completed using a single port instead of using PORTB and 
+	PORTD via masking. See the schematic.
+	
+	Configure all data ahead of time so no bitwise operations are done in the draw loop. This
+	decreases draw time by quite a bit.
+  */
+  // 0x2F = 0010 1111     0xD0 = 1101 0000
+  uint8_t portd_highbyte = (PORTD & 0x2F) | ((color >> 8) & 0xD0);
+  uint8_t portb_highbyte = (PORTB & 0xD0) | ((color >> 8) & 0x2F);
+	uint8_t portd_lowbyte  = (PORTD & 0x2F) | (color & 0xD0);
+	uint8_t portb_lowbyte  = (PORTB & 0xD0) | (color & 0x2F);
+  uint8_t nwrpin = ~wrpin;
+  /*
+	In order to increase speed, we cut the number of iterations down by four times.
+	This results in ~20 ms gain in draw time. Total draw time for my UNO R3 is ~145 ms
+	for any color. Draw time for the previous fillScreen function was ~571 ms.
+  
+  Draw time could further be optimized if all datapins were on the same port. The gain
+  would likely be ~20 ms.
+  */
+  uint32_t i = 19200; // 320 * 240 / 4.
+  volatile uint8_t *wrportreg = portOutputRegister(wrport);
   while (i--) {
-    writeData_unsafe(color); 
+    PORTD = portd_highbyte; // Send high byte over port D. (LCD_DATA_5_5V, LCD_DATA_7_5V, LCD_DATA_8_5V)
+    PORTB = portb_highbyte; // Send high byte over port B. (LCD_DATA_1_5V, LCD_DATA_2_5V, LCD_DATA_3_5V, LCD_DATA_4_5V, LCD_DATA_6_5V)
+    *wrportreg &= nwrpin;   // Strobe to transmit the data.
+    *wrportreg |=  wrpin;   // Strobe to transmit the data.
+    PORTD = portd_lowbyte;  // Send high byte over port D.
+    PORTB = portb_lowbyte;  // Send high byte over port B.
+    *wrportreg &= nwrpin;   // Strobe to transmit the data.
+    *wrportreg |=  wrpin;   // Strobe to transmit the data.
+    // Repeat cycle 4 times.
+    PORTD = portd_highbyte;
+    PORTB = portb_highbyte;
+    *wrportreg &= nwrpin;
+    *wrportreg |=  wrpin;
+    PORTD = portd_lowbyte;
+    PORTB = portb_lowbyte;
+    *wrportreg &= nwrpin;
+    *wrportreg |=  wrpin;
+    PORTD = portd_highbyte;
+    PORTB = portb_highbyte;
+    *wrportreg &= nwrpin;
+    *wrportreg |=  wrpin;
+    PORTD = portd_lowbyte;
+    PORTB = portb_lowbyte;
+    *wrportreg &= nwrpin;
+    *wrportreg |=  wrpin;
+    PORTD = portd_highbyte;
+    PORTB = portb_highbyte;
+    *wrportreg &= nwrpin;
+    *wrportreg |=  wrpin;
+    PORTD = portd_lowbyte;
+    PORTB = portb_lowbyte;
+    *wrportreg &= nwrpin;
+    *wrportreg |=  wrpin;
   }
-
   *portOutputRegister(csport) |= cspin;
-  //digitalWrite(_cs, HIGH);
 }
 
 void TFTLCD::drawPixel(uint16_t x, uint16_t y, uint16_t color)
@@ -628,39 +637,55 @@ void TFTLCD::setRotation(uint8_t x) {
 /********************************* low level pin initialization */
 
 TFTLCD::TFTLCD(uint8_t cs, uint8_t cd, uint8_t wr, uint8_t rd, uint8_t reset) {
-  _cs = cs;
-  _cd = cd;
-  _wr = wr;
-  _rd = rd;
-  _reset = reset;
+  _cs = cs;       // Chip Select:     A3 with the Adafruit shield.
+  _rs = cd;       // Register Select: A2 with the Adafruit shield.
+  _wr = wr;       // LCD Write:       A1 with the Adafruit shield.
+  _rd = rd;       // LCD Read:        A0 with the Adafruit shield.
+  _reset = reset; //                  A4 with the Adafruit shield.
   
   rotation = 0;
   _width = TFTWIDTH;
   _height = TFTHEIGHT;
 
-  // disable the LCD
+  // nCS - Chip Select signal HIGH:!ENABLED LOW:ENABLED
   digitalWrite(_cs, HIGH);
   pinMode(_cs, OUTPUT);  
+  /* Per the ILI9325 Datasheet:
+    A register select signal.
+    Low: select an index or status register
+    High: select a control register
+    Fix to either IOVcc or GND level when not in use.
+  */
+  digitalWrite(_rs, HIGH);
+  pinMode(_rs, OUTPUT);  
   
-  digitalWrite(_cd, HIGH);
-  pinMode(_cd, OUTPUT);  
-  
+  /* Per the ILI9325 Datasheet:
+    A write strobe signal and enables an operation to write data when the signal is low.
+    Fix to either IOVcc or GND level when not in use.
+    SPI Mode:
+    Synchronizing clock signal in SPI mode.
+  */
   digitalWrite(_wr, HIGH);
   pinMode(_wr, OUTPUT);  
-  
+  /* Per the ILI9325 Datasheet:
+  A read strobe signal and enables an operation to read out data when the signal is low.
+  Fix to either IOVcc or GND level when not in use.
+  */
   digitalWrite(_rd, HIGH);
   pinMode(_rd, OUTPUT);  
 
+  // Per the ILI9325 Datasheet: Initializes the ILI9325 with a low input. 
+  // Be sure to execute a power-on reset after supplying power.
   digitalWrite(_reset, HIGH); 
   pinMode(_reset, OUTPUT); 
 
   csport = digitalPinToPort(_cs);
-  cdport = digitalPinToPort(_cd);
+  rsport = digitalPinToPort(_rs);
   wrport = digitalPinToPort(_wr);
   rdport = digitalPinToPort(_rd);
 
   cspin = digitalPinToBitMask(_cs);
-  cdpin = digitalPinToBitMask(_cd);
+  rspin = digitalPinToBitMask(_rs);
   wrpin = digitalPinToBitMask(_wr);
   rdpin = digitalPinToBitMask(_rd);
 
@@ -687,112 +712,24 @@ void TFTLCD::reset(void) {
 }
 
 inline void TFTLCD::setWriteDir(void) {
-#if defined(__AVR_ATmega168__) || defined(__AVR_ATmega328P__) || defined (__AVR_ATmega328) || (__AVR_ATmega8__)
   DATADDR2 |= DATA2_MASK;
   DATADDR1 |= DATA1_MASK;
-#elif defined(__AVR_ATmega1281__) || defined(__AVR_ATmega2561__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__) 
-
-  #ifdef USE_ADAFRUIT_SHIELD_PINOUT
-  DDRH |= 0x78;
-  DDRB |= 0xB0;
-  DDRG |= _BV(5);
-  #else
-  MEGA_DATADDR = 0xFF;
-  #endif
-#else
-  #error "No pins defined!"
-#endif
 }
 
 inline void TFTLCD::setReadDir(void) {
-#if defined(__AVR_ATmega168__) || defined(__AVR_ATmega328P__) || defined (__AVR_ATmega328) || (__AVR_ATmega8__)
   DATADDR2 &= ~DATA2_MASK;
   DATADDR1 &= ~DATA1_MASK;
-#elif defined(__AVR_ATmega1281__) || defined(__AVR_ATmega2561__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__) 
-
-  #ifdef USE_ADAFRUIT_SHIELD_PINOUT
-  DDRH &= ~0x78;
-  DDRB &= ~0xB0;
-  DDRG &= ~_BV(5);
-  #else
-  MEGA_DATADDR = 0;
-  #endif
-#else
-  #error "No pins defined!"
-#endif
 }
 
 inline void TFTLCD::write8(uint8_t d) {
-#if defined(__AVR_ATmega168__) || defined(__AVR_ATmega328P__) || defined (__AVR_ATmega328) || (__AVR_ATmega8__)
-
-  DATAPORT2 = (DATAPORT2 & DATA1_MASK) | 
-    (d & DATA2_MASK);
-  DATAPORT1 = (DATAPORT1 & DATA2_MASK) | 
-    (d & DATA1_MASK); // top 6 bits
-  
-#elif defined(__AVR_ATmega1281__) || defined(__AVR_ATmega2561__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__) 
-
-
-#ifdef USE_ADAFRUIT_SHIELD_PINOUT
-
-  // bit 6/7 (PH3 & 4)
-  // first two bits 0 & 1 (PH5 & 6)
-  PORTH &= ~(0x78);
-  PORTH |= ((d&0xC0) >> 3) | ((d&0x3) << 5);
-
-  // bits 2 & 3 (PB4 & PB5)
-  // bit 5 (PB7)
-  PORTB &= ~(0xB0); 
-  PORTB |= ((d & 0x2C) << 2);
-
-  // bit 4  (PG5)
-  if (d & _BV(4))
-    PORTG |= _BV(5);
-  else
-    PORTG &= ~_BV(5);
-
-  #else
-     MEGA_DATAPORT = d;  
-  #endif
-
-#else
-  #error "No pins defined!"
-#endif
+  DATAPORT2 = (DATAPORT2 & DATA1_MASK) | (d & DATA2_MASK);
+  DATAPORT1 = (DATAPORT1 & DATA2_MASK) | (d & DATA1_MASK); // top 6 bits
 }
 
 inline uint8_t TFTLCD::read8(void) {
  uint8_t d;
-#if defined(__AVR_ATmega168__) || defined(__AVR_ATmega328P__) || defined (__AVR_ATmega328) || (__AVR_ATmega8__)
-
  d = DATAPIN1 & DATA1_MASK; 
  d |= DATAPIN2 & DATA2_MASK; 
-
-#elif defined(__AVR_ATmega1281__) || defined(__AVR_ATmega2561__) || defined(__AVR_ATmega2560__)  || defined(__AVR_ATmega1280__) 
-
-#ifdef USE_ADAFRUIT_SHIELD_PINOUT
-
-  // bit 6/7 (PH3 & 4)
-  // first two bits 0 & 1 (PH5 & 6)
- d = (PINH & 0x60) >> 5;
- d |= (PINH & 0x18) << 3;
-
-  // bits 2 & 3 & 5 (PB4 & PB5, PB7)
- d |= (PINB & 0xB0) >> 2;
-
-  // bit 4  (PG5)
-  if (PING & _BV(5))
-    d |= _BV(4);
-
-#else
- d = MEGA_DATAPIN;  
-#endif
-
-#else
-
-  #error "No pins defined!"
-
-#endif
-
  return d;
 }
 
@@ -804,8 +741,8 @@ void TFTLCD::writeData(uint16_t data) {
 
   *portOutputRegister(csport) &= ~cspin;
   //digitalWrite(_cs, LOW);
-  *portOutputRegister(cdport) |= cdpin;
-  //digitalWrite(_cd, HIGH);
+  *portOutputRegister(rsport) |= rspin;
+  //digitalWrite(_rs, HIGH);
   *portOutputRegister(rdport) |= rdpin;
   //digitalWrite(_rd, HIGH);
   
@@ -857,8 +794,8 @@ void TFTLCD::writeCommand(uint16_t cmd) {
 
   *portOutputRegister(csport) &= ~cspin;
   //digitalWrite(_cs, LOW);
-  *portOutputRegister(cdport) &= ~cdpin;
-  //digitalWrite(_cd, LOW);
+  *portOutputRegister(rsport) &= ~rspin;
+  //digitalWrite(_rs, LOW);
   *portOutputRegister(rdport) |= rdpin;
   //digitalWrite(_rd, HIGH);
   
@@ -888,8 +825,8 @@ uint16_t TFTLCD::readData() {
  
   *portOutputRegister(csport) &= ~cspin;
   //digitalWrite(_cs, LOW);
-  *portOutputRegister(cdport) |= cdpin;
-  //digitalWrite(_cd, HIGH);
+  *portOutputRegister(rsport) |= rspin;
+  //digitalWrite(_rs, HIGH);
   *portOutputRegister(rdport) |= rdpin;
   //digitalWrite(_rd, HIGH);
   *portOutputRegister(wrport) |= wrpin;
