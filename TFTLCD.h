@@ -67,7 +67,7 @@
 
 #define TFTLCD_DELAYCMD                 0xFF
 
-#define swap(a, b) { int16_t t = a; a = b; b = t; }
+#define swap(a, b){int16_t t = a; a = b; b = t;}
 
 class TFTLCD : public Print {
  public:
@@ -107,7 +107,6 @@ class TFTLCD : public Print {
 
   // commands
   void initDisplay(void);
-  void goHome(void);
   void goTo(int x, int y);
 
   void reset(void);

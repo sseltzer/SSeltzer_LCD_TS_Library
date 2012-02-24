@@ -68,10 +68,6 @@ void setup(void) {
   testRoundRect();
   delay(500); 
   */
-
-}
-
-void loop(void) {
   uint16_t color = BLUE;
   startTime = millis();
   tft.fillScreen(color);
@@ -82,7 +78,19 @@ void loop(void) {
   tft.println(" ");
   tft.println(tft.lcdGetPixel(10, 50), HEX);
   delay(2000);
-  
+  int i = 240;
+  startTime = millis();
+  //while (i-- > 0) tft.drawPixel(i, 100, BLACK);
+  //tft.drawLine(75, 75, 200, 200, BLACK);
+  while (i-- > 0) tft.drawLine(i, 0, i, 320, BLACK);
+  endTime = millis();
+  tft.setCursor(10, 120);
+  tft.println(endTime - startTime);
+  tft.println(" ");
+}
+
+void loop(void) {
+  /*
   startTime = millis();
   tft.fillScreen(BLACK);
   endTime = millis();
@@ -90,6 +98,7 @@ void loop(void) {
   tft.setTextSize(2);
   tft.println(endTime - startTime);
   delay(2000);
+  */
 }
 
 
@@ -240,3 +249,4 @@ void testBars() {
     }
   }
 }
+
