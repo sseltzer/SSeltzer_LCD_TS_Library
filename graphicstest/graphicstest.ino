@@ -42,26 +42,29 @@ unsigned long startTime = 0;
 unsigned long endTime = 0;
 
 void setup(void) {
-  //Serial.begin(9600);
-  //Serial.println("8 Bit LCD test!");
-  
-  //tft.initDisplay();
+  tft.initDisplay();
+  startTime = micros();
+  tft.fillScreen(MAGENTA);
+  endTime = micros();
+  tft.setCursor(10, 50);
+  tft.setTextSize(2);
+  tft.println(endTime - startTime);
   /*
   startTime = millis();
-  tft.initDisplay(1, 0x0000);
+  testdrawcircles(10, WHITE);
+  //testFastLine(BLUE);
   endTime = millis();
   tft.setCursor(10, 50);
   tft.setTextSize(2);
   tft.println(endTime - startTime);
-  */
+  int i = 0;
+  for (; i < 240; i++)  {
+    if (tft.readPixel(i, 0) != 0x0000) {
+    tft.println(i + " " + tft.readPixel(i, 0));
+    break;
+    }
+  }
   
-  startTime = millis();
-  tft.initDisplay(1, 0x0000);
-  //testdrawcircles(10, WHITE);
-  endTime = millis();
-  tft.setCursor(10, 50);
-  tft.setTextSize(2);
-  tft.println(endTime - startTime);
   /*
   testtext(RED);
   delay(2000);
@@ -83,7 +86,7 @@ void setup(void) {
   delay(500); 
   testRoundRect();
   delay(500); 
-  */
+  
   /*
   uint16_t color = BLUE;
   startTime = millis();
@@ -212,7 +215,10 @@ void testfastlines(uint16_t color1, uint16_t color2) {
    for (uint16_t x=0; x < tft.width(); x+=5) {
      tft.drawVerticalLine(x, 0, tft.height(), color2);
    }
-  
+}
+void testFastLine(uint16_t color) {
+  int i = 320;
+  while(i--) tft.drawFastLine(0, i, 240, color, 0);
 }
 
 void testlines(uint16_t color) {

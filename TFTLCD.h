@@ -72,19 +72,34 @@
 class TFTLCD : public Print {
  public:
   TFTLCD(uint8_t cs, uint8_t rs, uint8_t wr, uint8_t rd, uint8_t reset);
-
-  uint16_t color565(uint8_t r, uint8_t g, uint8_t b);
-
-  // drawing primitives!
-  void writePixel(uint16_t x, uint16_t y, uint16_t color);
-  void fillScreen(uint16_t color);
-  uint16_t lcdGetPixel(uint16_t x, uint16_t y);
   
-  void drawPixel(uint16_t x, uint16_t y, uint16_t color);
-  void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
+  void initDisplay();
+  void initDisplay(boolean fill, uint16_t color);
+  void reset(void);
+  
+  void writeRegister(uint16_t address);
+  void writeRegister(uint16_t address, uint16_t data);
+  void writeData(uint16_t data);
+  uint16_t readRegister(uint16_t address);
+  
+  void writePixel(uint16_t x, uint16_t y, uint16_t color);
+  void writePixel(uint16_t x, uint16_t y, uint16_t color, bool rotflag);
+  uint16_t readPixel(uint16_t x, uint16_t y);
+  
+  void fillScreen(uint16_t color);
+  
   void drawFastLine(uint16_t x0, uint16_t y0, uint16_t l, uint16_t color, uint8_t flag);
   void drawVerticalLine(uint16_t x0, uint16_t y0, uint16_t length, uint16_t color);
   void drawHorizontalLine(uint16_t x0, uint16_t y0, uint16_t length, uint16_t color);
+  void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
+  
+  void setRotation(uint8_t x);
+  uint8_t getRotation();
+  uint16_t color565(uint8_t r, uint8_t g, uint8_t b);
+  uint16_t width();
+  uint16_t height();
+  
+  
   void drawTriangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color);
   void fillTriangle(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t x2, int32_t y2, uint16_t color);
   void drawRect(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h, uint16_t color);
@@ -97,46 +112,13 @@ class TFTLCD : public Print {
   void setCursor(uint16_t x, uint16_t y);
   void setTextColor(uint16_t c);
   void setTextSize(uint8_t s);
-#if ARDUINO >= 100
+  
   virtual size_t write(uint8_t);
-#else
-  virtual void write(uint8_t);
-#endif
-
   void drawChar(uint16_t x, uint16_t y, char c, uint16_t color, uint8_t s = 1);
   void drawString(uint16_t x, uint16_t y, char *c, uint16_t color, uint8_t s = 1);
 
-  // commands
-  void initDisplay();
-  void initDisplay(boolean fill, uint16_t color);
-  void goTo(int x, int y);
-
-  void reset(void);
-  void setRotation(uint8_t x);
-  uint8_t getRotation();
-
-  /* low level */
-
-  void writeData(uint16_t d);
-  void writeCommand(uint16_t c);
-  uint16_t readData(void);
-  uint16_t readRegister(uint16_t addr);
-  void writeRegister(uint16_t addr, uint16_t data);
-
-
-  uint16_t width();
-  uint16_t height();
-
   static const uint16_t TFTWIDTH = 240;
   static const uint16_t TFTHEIGHT = 320;
-
-  void writeData_unsafe(uint16_t d);
-
-  void setWriteDir(void);
-  void setReadDir(void);
-
-
-  void write8(uint8_t d);
 
  private:
   void drawCircleHelper(uint16_t x0, uint16_t y0, uint16_t r, uint8_t corner, uint16_t color);
@@ -147,7 +129,7 @@ class TFTLCD : public Print {
   uint8_t _cs, _rs, _reset, _wr, _rd;
 
   uint8_t csport, rsport, wrport, rdport;
-  uint8_t cspin, rspin, wrpin, rdpin;
+  uint8_t cspin, rspin, wrpin, nwrpin, rdpin, nrdpin;
 
   uint16_t _width, _height;
   uint8_t textsize;
