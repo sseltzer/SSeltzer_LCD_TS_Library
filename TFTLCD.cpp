@@ -1,8 +1,11 @@
-#include "TFTLCD.h"
-
 // Graphics library by ladyada/adafruit with init code from Rossum 
 // Modified by sseltzer.
 // MIT license
+#include "TFTLCD.h"
+#include "glcdfont.c"
+#include <avr/pgmspace.h>
+#include "pins_arduino.h"
+#include "wiring_private.h"
 
 #define DATAPORT1 PORTD
 #define DATAPIN1 PIND
@@ -15,85 +18,13 @@
 #define PORTD_PINMASK 0xD0
 #define PORTB_PINMASK 0x2F
 
-#include "glcdfont.c"
-#include <avr/pgmspace.h>
-#include "pins_arduino.h"
-#include "wiring_private.h"
-
-static const uint16_t _regValues[] PROGMEM = {
-  TFTLCD_START_OSC, 0x0001,     // start oscillator
-
-  TFTLCD_DELAYCMD, 50,          // this will make a delay of 50 milliseconds
-
-  TFTLCD_DRIV_OUT_CTRL, 0x0100, 
-  TFTLCD_DRIV_WAV_CTRL, 0x0700,
-  TFTLCD_ENTRY_MOD, 0x1030,
-  TFTLCD_RESIZE_CTRL, 0x0000,
-  TFTLCD_DISP_CTRL2, 0x0202,
-  TFTLCD_DISP_CTRL3, 0x0000,
-  TFTLCD_DISP_CTRL4, 0x0000,
-  TFTLCD_RGB_DISP_IF_CTRL1, 0x0,
-  TFTLCD_FRM_MARKER_POS, 0x0,
-  TFTLCD_RGB_DISP_IF_CTRL2, 0x0,
-  
-  TFTLCD_POW_CTRL1, 0x0000,
-  TFTLCD_POW_CTRL2, 0x0007,
-  TFTLCD_POW_CTRL3, 0x0000,
-  TFTLCD_POW_CTRL4, 0x0000,
-
-  TFTLCD_DELAYCMD, 200,  
-  
-  TFTLCD_POW_CTRL1, 0x1690,
-  TFTLCD_POW_CTRL2, 0x0227,
-
-  TFTLCD_DELAYCMD, 50,  
-
-  TFTLCD_POW_CTRL3, 0x001A,
-
-  TFTLCD_DELAYCMD, 50,  
-
-  TFTLCD_POW_CTRL4, 0x1800,
-  TFTLCD_POW_CTRL7, 0x002A,
-
-  TFTLCD_DELAYCMD,50,
-  
-  TFTLCD_GAMMA_CTRL1, 0x0000,    
-  TFTLCD_GAMMA_CTRL2, 0x0000, 
-  TFTLCD_GAMMA_CTRL3, 0x0000,
-  TFTLCD_GAMMA_CTRL4, 0x0206,   
-  TFTLCD_GAMMA_CTRL5, 0x0808,  
-  TFTLCD_GAMMA_CTRL6, 0x0007,  
-  TFTLCD_GAMMA_CTRL7, 0x0201,
-  TFTLCD_GAMMA_CTRL8, 0x0000,  
-  TFTLCD_GAMMA_CTRL9, 0x0000,  
-  TFTLCD_GAMMA_CTRL10, 0x0000,  
- 
-  TFTLCD_GRAM_HOR_AD, 0x0000,  
-  TFTLCD_GRAM_VER_AD, 0x0000,  
-  TFTLCD_HOR_START_AD, 0x0000,
-  TFTLCD_HOR_END_AD, 0x00EF,
-  TFTLCD_VER_START_AD, 0X0000,
-  TFTLCD_VER_END_AD, 0x013F,
-   
-
-  TFTLCD_GATE_SCAN_CTRL1, 0xA700,     // Driver Output Control (R60h)
-  TFTLCD_GATE_SCAN_CTRL2, 0x0003,     // Driver Output Control (R61h)
-  TFTLCD_GATE_SCAN_CTRL3, 0x0000,     // Driver Output Control (R62h)
-
-  TFTLCD_PANEL_IF_CTRL1, 0X0010,     // Panel Interface Control 1 (R90h)
-  TFTLCD_PANEL_IF_CTRL2, 0X0000,
-  TFTLCD_PANEL_IF_CTRL3, 0X0003,
-  TFTLCD_PANEL_IF_CTRL4, 0X1100,
-  TFTLCD_PANEL_IF_CTRL5, 0X0000,
-  TFTLCD_PANEL_IF_CTRL6, 0X0000,
-
-  // Display On
-  TFTLCD_DISP_CTRL1, 0x0133,     // Display Control (R07h)
-};
+// Adds delays during the init of the LCD 571ms to do an init and screen fill, 148ms if disabled.
+//#define LONGINIT
 
 uint16_t TFTLCD::width(void) {return _width;}
 uint16_t TFTLCD::height(void) {return _height;}
-uint8_t TFTLCD::getRotation(void) {return rotation;}
+uint8_t  TFTLCD::getRotation(void) {return rotation;}
+uint16_t TFTLCD::color565(uint8_t r, uint8_t g, uint8_t b) {return (((((r >> 3) << 6) | (g >> 2)) << 5) | (b >> 3));}
 
 TFTLCD::TFTLCD(uint8_t cs, uint8_t cd, uint8_t wr, uint8_t rd, uint8_t reset) {
   _cs = cs;       // Chip Select:     A3 with the Adafruit shield.
@@ -152,16 +83,77 @@ TFTLCD::TFTLCD(uint8_t cs, uint8_t cd, uint8_t wr, uint8_t rd, uint8_t reset) {
   textsize = 1;
   textcolor = 0xFFFF;
 }
-
-void TFTLCD::initDisplay(void) {
-  uint16_t a, d;
+void TFTLCD::initDisplay() {
+  initDisplay(true, 0x0000);
+}
+// Init display and optionally fill the screen with a color before enabling the display.
+void TFTLCD::initDisplay(boolean fill, uint16_t color) {
   reset();
-  for (uint8_t i = 0; i < sizeof(_regValues) / 4; i++) {
-    a = pgm_read_word(_regValues + i*2);
-    d = pgm_read_word(_regValues + i*2 + 1);
-    if (a == 0xFF) delay(d);
-    else writeRegister(a, d);
-  }
+  writeRegister(TFTLCD_START_OSC,         0x0001); //0000 0000 0000 0001 // start oscillator
+  #ifdef LONGINIT
+  delay(50);          // this will make a delay of 50 milliseconds
+  #endif
+  writeRegister(TFTLCD_DRIV_OUT_CTRL,     0x0100); //0000 0001 0000 0000
+  writeRegister(TFTLCD_DRIV_WAV_CTRL,     0x0700); //0000 0111 0000 0000
+  writeRegister(TFTLCD_ENTRY_MOD,         0x1030); //0001 0000 0011 0000
+  writeRegister(TFTLCD_RESIZE_CTRL,       0x0000); //0000 0000 0000 0000
+  writeRegister(TFTLCD_DISP_CTRL2,        0x0202); //0000 0010 0000 0010
+  writeRegister(TFTLCD_DISP_CTRL3,        0x0000); //0000 0000 0000 0000
+  writeRegister(TFTLCD_DISP_CTRL4,        0x0000); //0000 0000 0000 0000
+  writeRegister(TFTLCD_RGB_DISP_IF_CTRL1, 0x0000); //0000 0000 0000 0000
+  writeRegister(TFTLCD_FRM_MARKER_POS,    0x0000); //0000 0000 0000 0000
+  writeRegister(TFTLCD_RGB_DISP_IF_CTRL2, 0x0000); //0000 0000 0000 0000
+  writeRegister(TFTLCD_POW_CTRL1,         0x0000); //0000 0000 0000 0000
+  writeRegister(TFTLCD_POW_CTRL2,         0x0007); //0000 0000 0000 0111
+  writeRegister(TFTLCD_POW_CTRL3,         0x0000); //0000 0000 0000 0000
+  writeRegister(TFTLCD_POW_CTRL4,         0x0000); //0000 0000 0000 0000
+  #ifdef LONGINIT
+  delay(200);
+  #endif
+  writeRegister(TFTLCD_POW_CTRL1,         0x1690); //0001 0110 1001 0000
+  writeRegister(TFTLCD_POW_CTRL2,         0x0227); //0000 0010 0010 0111
+  #ifdef LONGINIT
+  delay(50);
+  #endif
+  writeRegister(TFTLCD_POW_CTRL3,         0x001A); //0000 0000 0001 1010
+  #ifdef LONGINIT
+  delay(50);
+  #endif
+  writeRegister(TFTLCD_POW_CTRL4,         0x1800); //0001 1000 0000 0000
+  writeRegister(TFTLCD_POW_CTRL7,         0x002A); //0000 0000 0010 1010
+  #ifdef LONGINIT
+  delay(50);
+  #endif
+  writeRegister(TFTLCD_GAMMA_CTRL1,       0x0000); //0000 0000 0000 0000
+  writeRegister(TFTLCD_GAMMA_CTRL2,       0x0000); //0000 0000 0000 0000
+  writeRegister(TFTLCD_GAMMA_CTRL3,       0x0000); //0000 0000 0000 0000
+  writeRegister(TFTLCD_GAMMA_CTRL4,       0x0206); //0000 0010 0000 0110
+  writeRegister(TFTLCD_GAMMA_CTRL5,       0x0808); //0000 1000 0000 1000
+  writeRegister(TFTLCD_GAMMA_CTRL6,       0x0007); //0000 0000 0000 0111
+  writeRegister(TFTLCD_GAMMA_CTRL7,       0x0201); //0000 0010 0000 0001
+  writeRegister(TFTLCD_GAMMA_CTRL8,       0x0000); //0000 0000 0000 0000
+  writeRegister(TFTLCD_GAMMA_CTRL9,       0x0000); //0000 0000 0000 0000
+  writeRegister(TFTLCD_GAMMA_CTRL10,      0x0000); //0000 0000 0000 0000
+  
+  writeRegister(TFTLCD_GRAM_HOR_AD,       0x0000); //0000 0000 0000 0000
+  writeRegister(TFTLCD_GRAM_VER_AD,       0x0000); //0000 0000 0000 0000  
+  writeRegister(TFTLCD_HOR_START_AD,      0x0000); //0000 0000 0000 0000
+  writeRegister(TFTLCD_HOR_END_AD,        0x00EF); //0000 0000 1110 1111
+  writeRegister(TFTLCD_VER_START_AD,      0X0000); //0000 0000 0000 0000
+  writeRegister(TFTLCD_VER_END_AD,        0x013F); //0000 0001 0011 1111
+
+  writeRegister(TFTLCD_GATE_SCAN_CTRL1,   0xA700); //1010 0111 0000 0000 // Driver Output Control (R60h)
+  writeRegister(TFTLCD_GATE_SCAN_CTRL2,   0x0003); //0000 0000 0000 0011 // Driver Output Control (R61h)
+  writeRegister(TFTLCD_GATE_SCAN_CTRL3,   0x0000); //0000 0000 0000 0000 // Driver Output Control (R62h)
+
+  writeRegister(TFTLCD_PANEL_IF_CTRL1,    0X0010); //0000 0000 0001 0000 // Panel Interface Control 1 (R90h)
+  writeRegister(TFTLCD_PANEL_IF_CTRL2,    0X0000); //0000 0000 0000 0000
+  writeRegister(TFTLCD_PANEL_IF_CTRL3,    0X0003); //0000 0000 0000 0011
+  writeRegister(TFTLCD_PANEL_IF_CTRL4,    0X1100); //0001 0001 0000 0000
+  writeRegister(TFTLCD_PANEL_IF_CTRL5,    0X0000); //0000 0000 0000 0000
+  writeRegister(TFTLCD_PANEL_IF_CTRL6,    0X0000); //0000 0000 0000 0000
+  if (fill) fillScreen(color);                     // Aesthetics option to fill the screen to a color before enabling the display.
+  writeRegister(TFTLCD_DISP_CTRL1,        0x0133); //0000 0001 0011 0011 // Display Control (R07h)
 }
 
 void TFTLCD::reset(void) {
@@ -205,10 +197,7 @@ void TFTLCD::drawPixel(uint16_t x, uint16_t y, uint16_t color) {
     break;
   }
   if ((x >= TFTWIDTH) || (y >= TFTHEIGHT)) return;
-  writeRegister(TFTLCD_GRAM_HOR_AD, x);
-  writeRegister(TFTLCD_GRAM_VER_AD, y);
-  writeCommand(TFTLCD_RW_GRAM);
-  writeData(color);
+  writePixel(x, y, color);
 }
 
 void  TFTLCD::fillScreen(uint16_t color) {
@@ -331,50 +320,25 @@ void TFTLCD::drawFastLine(uint16_t x, uint16_t y, uint16_t length, uint16_t colo
   writeCommand(TFTLCD_RW_GRAM);  // Write Data to GRAM (R22h)
   volatile uint8_t *wrportreg = portOutputRegister(wrport);
   *portOutputRegister(csport) &= ~cspin;  // LOW
-  *portOutputRegister(rsport) |= rspin;   // HIGH
+  *portOutputRegister(rsport) |= rspin; // Register Select Pin HIGH
   *portOutputRegister(rdport) |= rdpin;   // HIGH
-  *wrportreg |=  wrpin; // HIGH
+  *wrportreg |=  wrpin; // Write Pin HIGH
   DATADDR1 |= PORTD_PINMASK;
   DATADDR2 |= PORTB_PINMASK;
   while (length--) {
     PORTD = (PORTD & PORTB_PINMASK) | ((color >> 8) & PORTD_PINMASK);
     PORTB = (PORTB & PORTD_PINMASK) | ((color >> 8) & PORTB_PINMASK);
-    *wrportreg &= ~wrpin; // LOW
-    *wrportreg |=  wrpin; // HIGH
+    *wrportreg &= ~wrpin; // Write Pin LOW
+    *wrportreg |=  wrpin; // Write Pin HIGH
     PORTD = (PORTD & PORTB_PINMASK) | (color & PORTD_PINMASK);
     PORTB = (PORTB & PORTD_PINMASK) | (color & PORTB_PINMASK);
-    *wrportreg &= ~wrpin; // LOW
-    *wrportreg |=  wrpin; // HIGH
+    *wrportreg &= ~wrpin; // Write Pin LOW
+    *wrportreg |=  wrpin; // Write Pin HIGH
   }
   *portOutputRegister(csport) |= cspin; // HIGH
   writeRegister(TFTLCD_ENTRY_MOD, 0x1030);
 }
-/*
-// 7739 the 'simplified form' is less efficient
-void TFTLCD::drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color) {
-  int16_t dx = abs(x1 - x0);
-  int16_t dy = abs(y1 - y0);
-  int8_t sx = (x0 < x1) ? 1 : -1;
-  int8_t sy = (y0 < y1) ? 1 : -1;
-  int16_t err = dx - dy;
-  int16_t e2;
-  while(true) {
-    drawPixel(x0, y0, color);
-    if (x0 == x1 && y0 == y1) break;
-    e2 = 2 * err;
-    if (e2 > -1 * dy) {
-      err -= dy;
-      x0 += sx;
-    }
-    if (e2 < dx) {
-      err += dx;
-      y0 += sy;
-    }
-  }
-}
-*/
-//7690
-// bresenham's algorithm - thx wikpedia
+
 void TFTLCD::drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color) {
   // if you're in rotation 1 or 3, we need to swap the X and Y's
   bool steep = abs(y1 - y0) > abs(x1 - x0);
@@ -452,23 +416,20 @@ void TFTLCD::write(uint8_t c) {
 }
 
 void TFTLCD::drawString(uint16_t x, uint16_t y, char *c, uint16_t color, uint8_t size) {
-  while (c[0] != 0) {
+  while (c[0]) {
     drawChar(x, y, c[0], color, size);
-    x += size*6;
+    x += size * 6;
     c++;
   }
 }
 // draw a character
 void TFTLCD::drawChar(uint16_t x, uint16_t y, char c, uint16_t color, uint8_t size) {
   for (uint8_t i =0; i<5; i++ ) {
-    uint8_t line = pgm_read_byte(font+(c*5)+i);
+    uint8_t line = pgm_read_byte(font + (c * 5) + i);
     for (uint8_t j = 0; j<8; j++) {
       if (line & 0x1) {
-	if (size == 1) // default size
-	  drawPixel(x+i, y+j, color);
-	else {  // big size
-	  fillRect(x+i*size, y+j*size, size, size, color);
-	} 
+        if (size == 1) drawPixel(x + i, y + j, color); // default size
+        else           fillRect(x + i * size, y + j * size, size, size, color); // big size
       }
       line >>= 1;
     }
@@ -537,17 +498,6 @@ void TFTLCD::fillTriangle(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_
   }
 }
 
-uint16_t TFTLCD::Color565(uint8_t r, uint8_t g, uint8_t b) {
-  uint16_t c;
-  c = r >> 3;
-  c <<= 6;
-  c |= g >> 2;
-  c <<= 5;
-  c |= b >> 3;
-
-  return c;
-}
-
 // draw a rectangle
 void TFTLCD::drawRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color) {
   // smarter version
@@ -586,6 +536,8 @@ void TFTLCD::fillRoundRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint1
 void TFTLCD::fillCircle(uint16_t x0, uint16_t y0, uint16_t r, uint16_t color) {
   writeRegister(TFTLCD_ENTRY_MOD, 0x1030);
   drawVerticalLine(x0, y0-r, 2*r+1, color);
+  //if (x >= _width) return;
+  //drawFastLine(x0, y0-r, 2*r+1, color,1);
   fillCircleHelper(x0, y0, r, 3, 0, color);
 }
 
@@ -623,11 +575,10 @@ void TFTLCD::fillCircleHelper(uint16_t x0, uint16_t y0, uint16_t r, uint8_t corn
 // draw a circle outline
 
 void TFTLCD::drawCircle(uint16_t x0, uint16_t y0, uint16_t r, uint16_t color) {
-  drawPixel(x0, y0+r, color);
-  drawPixel(x0, y0-r, color);
-  drawPixel(x0+r, y0, color);
-  drawPixel(x0-r, y0, color);
-
+  writePixel(x0, y0 + r, color);
+  writePixel(x0, y0 - r, color);
+  writePixel(x0 + r, y0, color);
+  writePixel(x0 - r, y0, color);
   drawCircleHelper(x0, y0, r, 0xF, color);
 }
 
@@ -649,20 +600,20 @@ void TFTLCD::drawCircleHelper(uint16_t x0, uint16_t y0, uint16_t r, uint8_t corn
     ddF_x += 2;
     f += ddF_x;
     if (cornername & 0x4) {
-      drawPixel(x0 + x, y0 + y, color);
-      drawPixel(x0 + y, y0 + x, color);
+      writePixel(x0 + x, y0 + y, color);
+      writePixel(x0 + y, y0 + x, color);
     } 
     if (cornername & 0x2) {
-      drawPixel(x0 + x, y0 - y, color);
-      drawPixel(x0 + y, y0 - x, color);
+      writePixel(x0 + x, y0 - y, color);
+      writePixel(x0 + y, y0 - x, color);
     }
     if (cornername & 0x8) {
-      drawPixel(x0 - y, y0 + x, color);
-      drawPixel(x0 - x, y0 + y, color);
+      writePixel(x0 - y, y0 + x, color);
+      writePixel(x0 - x, y0 + y, color);
     }
     if (cornername & 0x1) {
-      drawPixel(x0 - y, y0 - x, color);
-      drawPixel(x0 - x, y0 - y, color);
+      writePixel(x0 - y, y0 - x, color);
+      writePixel(x0 - x, y0 - y, color);
     }
   }
 }
@@ -708,19 +659,19 @@ inline uint8_t TFTLCD::read8(void) {
 void TFTLCD::writeData(uint16_t data) {
   volatile uint8_t *wrportreg = portOutputRegister(wrport);
   *portOutputRegister(csport) &= ~cspin;  // LOW
-  *portOutputRegister(rsport) |= rspin;   // HIGH
+  *portOutputRegister(rsport) |= rspin; // Register Select Pin HIGH
   *portOutputRegister(rdport) |= rdpin;   // HIGH
-  *wrportreg |=  wrpin; // HIGH
+  *wrportreg |=  wrpin; // Write Pin HIGH
   DATADDR1 |= PORTD_PINMASK;
   DATADDR2 |= PORTB_PINMASK;
   PORTD = (PORTD & PORTB_PINMASK) | ((data >> 8) & PORTD_PINMASK);
   PORTB = (PORTB & PORTD_PINMASK) | ((data >> 8) & PORTB_PINMASK);
-  *wrportreg &= ~wrpin; // LOW
-  *wrportreg |=  wrpin; // HIGH
+  *wrportreg &= ~wrpin; // Write Pin LOW
+  *wrportreg |=  wrpin; // Write Pin HIGH
   PORTD = (PORTD & PORTB_PINMASK) | (data & PORTD_PINMASK);
   PORTB = (PORTB & PORTD_PINMASK) | (data & PORTB_PINMASK);
-  *wrportreg &= ~wrpin; // LOW
-  *wrportreg |=  wrpin; // HIGH
+  *wrportreg &= ~wrpin; // Write Pin LOW
+  *wrportreg |=  wrpin; // Write Pin HIGH
   *portOutputRegister(csport) |= cspin; // HIGH
 }
 
@@ -822,11 +773,103 @@ uint16_t TFTLCD::readRegister(uint16_t addr) {
    return readData();
 }
 
-void TFTLCD::writeRegister(uint16_t addr, uint16_t data) {
-   writeCommand(addr);
-   writeData(data);
+
+void TFTLCD::writeRegister(uint16_t cmd, uint16_t data) {
+  volatile uint8_t *wrportreg = portOutputRegister(wrport);
+  *portOutputRegister(csport) &= ~cspin;  // LOW
+  *portOutputRegister(rsport) &= ~rspin;  // Register Select Pin LOW
+  *portOutputRegister(rdport) |= rdpin;   // HIGH
+  *wrportreg |=  wrpin; // Write Pin HIGH
+  DATADDR1 |= PORTD_PINMASK;
+  DATADDR2 |= PORTB_PINMASK;
+  // Write the command.
+  PORTD = (PORTD & PORTB_PINMASK) | ((cmd >> 8) & PORTD_PINMASK);
+  PORTB = (PORTB & PORTD_PINMASK) | ((cmd >> 8) & PORTB_PINMASK);
+  *wrportreg &= ~wrpin; // Write Pin LOW
+  *wrportreg |=  wrpin; // Write Pin HIGH
+  PORTD = (PORTD & PORTB_PINMASK) | (cmd & PORTD_PINMASK);
+  PORTB = (PORTB & PORTD_PINMASK) | (cmd & PORTB_PINMASK);
+  *wrportreg &= ~wrpin; // Write Pin LOW
+  *wrportreg |=  wrpin; // Write Pin HIGH
+  // Write the data.
+  *portOutputRegister(rsport) |= rspin; // Register Select Pin HIGH
+  PORTD = (PORTD & PORTB_PINMASK) | ((data >> 8) & PORTD_PINMASK);
+  PORTB = (PORTB & PORTD_PINMASK) | ((data >> 8) & PORTB_PINMASK);
+  *wrportreg &= ~wrpin; // Write Pin LOW
+  *wrportreg |=  wrpin; // Write Pin HIGH
+  PORTD = (PORTD & PORTB_PINMASK) | (data & PORTD_PINMASK);
+  PORTB = (PORTB & PORTD_PINMASK) | (data & PORTB_PINMASK);
+  *wrportreg &= ~wrpin; // Write Pin LOW
+  *wrportreg |=  wrpin; // Write Pin HIGH
+  
+  *portOutputRegister(csport) |= cspin; // HIGH
 }
-
-
-
-
+void TFTLCD::writePixel(uint16_t x, uint16_t y, uint16_t color) {
+  if (x > _width || y > _height || x < 0 || y < 0) return;
+  volatile uint8_t *wrportreg = portOutputRegister(wrport);
+  *portOutputRegister(csport) &= ~cspin;  // LOW
+  *portOutputRegister(rdport) |= rdpin;   // HIGH
+  *wrportreg |=  wrpin; // Write Pin HIGH
+  DATADDR1 |= PORTD_PINMASK;
+  DATADDR2 |= PORTB_PINMASK;
+  uint8_t dataD = PORTD & PORTB_PINMASK;
+  uint8_t dataB = PORTB & PORTD_PINMASK;
+  // Write the command.
+  *portOutputRegister(rsport) &= ~rspin;  // Register Select Pin LOW
+  PORTD = dataD;                          // 0x0020 (Low byte is 0, simplify logic - set it equal to the preserved values of PORTD and PORTB).
+  PORTB = dataB;                          // 0x0020 (Low byte is 0, simplify logic - set it equal to the preserved values of PORTD and PORTB).
+  *wrportreg &= ~wrpin;                   // Write Pin LOW
+  *wrportreg |=  wrpin;                   // Write Pin HIGH
+  PORTB |= TFTLCD_GRAM_HOR_AD;            // 0x0020 (PORTD does not need to change. Since PORTB == preserved values of the port, we can just | it with 0x20)
+  *wrportreg &= ~wrpin;                   // Write Pin LOW
+  *wrportreg |=  wrpin;                   // Write Pin HIGH
+  // Write the data.
+  *portOutputRegister(rsport) |= rspin;   // Register Select Pin HIGH
+  PORTD = dataD;
+  PORTB = dataB;
+  *wrportreg &= ~wrpin; // Write Pin LOW
+  *wrportreg |=  wrpin; // Write Pin HIGH
+  PORTD = dataD | (x & PORTD_PINMASK);
+  PORTB = dataB | (x & PORTB_PINMASK);
+  *wrportreg &= ~wrpin; // Write Pin LOW
+  *wrportreg |=  wrpin; // Write Pin HIGH
+  // Write the command.
+  *portOutputRegister(rsport) &= ~rspin; // Register Select Pin LOW
+  PORTD = dataD;
+  PORTB = dataB;
+  *wrportreg &= ~wrpin; // Write Pin LOW
+  *wrportreg |=  wrpin; // Write Pin HIGH
+  PORTB |= TFTLCD_GRAM_VER_AD;
+  *wrportreg &= ~wrpin; // Write Pin LOW
+  *wrportreg |=  wrpin; // Write Pin HIGH
+  // Write the data.
+  *portOutputRegister(rsport) |= rspin; // Register Select Pin HIGH
+  PORTD = dataD | ((y >> 8) & PORTD_PINMASK);
+  PORTB = dataB | ((y >> 8) & PORTB_PINMASK);
+  *wrportreg &= ~wrpin; // Write Pin LOW
+  *wrportreg |=  wrpin; // Write Pin HIGH
+  PORTD = dataD | (y & PORTD_PINMASK);
+  PORTB = dataB | (y & PORTB_PINMASK);
+  *wrportreg &= ~wrpin; // Write Pin LOW
+  *wrportreg |=  wrpin; // Write Pin HIGH
+  *portOutputRegister(rsport) &= ~rspin; // Register Select Pin LOW
+  PORTD = dataD;
+  PORTB = dataB;
+  *wrportreg &= ~wrpin; // Write Pin LOW
+  *wrportreg |=  wrpin; // Write Pin HIGH
+  PORTB |= TFTLCD_RW_GRAM;
+  *wrportreg &= ~wrpin; // Write Pin LOW
+  *wrportreg |=  wrpin; // Write Pin HIGH
+  *portOutputRegister(rsport) |= rspin; // Register Select Pin HIGH
+  PORTD = dataD | ((color >> 8) & PORTD_PINMASK);
+  PORTB = dataB | ((color >> 8) & PORTB_PINMASK);
+  *wrportreg &= ~wrpin; // Write Pin LOW
+  *wrportreg |=  wrpin; // Write Pin HIGH
+  PORTD = dataD | (color & PORTD_PINMASK);
+  PORTB = dataB | (color & PORTB_PINMASK);
+  *wrportreg &= ~wrpin; // Write Pin LOW
+  *portOutputRegister(csport) |= cspin; // HIGH
+}
+  
+  
+  

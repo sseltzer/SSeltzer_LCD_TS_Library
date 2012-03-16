@@ -37,6 +37,7 @@ For Mega's use pins 22 thru 29 (on the double header at the end)
 #include "TFTLCD.h"
 
 TFTLCD tft(LCD_CS, LCD_RS, LCD_WR, LCD_RD, LCD_RESET);
+
 unsigned long startTime = 0;
 unsigned long endTime = 0;
 
@@ -44,8 +45,23 @@ void setup(void) {
   //Serial.begin(9600);
   //Serial.println("8 Bit LCD test!");
   
-  tft.reset();
-  tft.initDisplay();
+  //tft.initDisplay();
+  /*
+  startTime = millis();
+  tft.initDisplay(1, 0x0000);
+  endTime = millis();
+  tft.setCursor(10, 50);
+  tft.setTextSize(2);
+  tft.println(endTime - startTime);
+  */
+  
+  startTime = millis();
+  tft.initDisplay(1, 0x0000);
+  //testdrawcircles(10, WHITE);
+  endTime = millis();
+  tft.setCursor(10, 50);
+  tft.setTextSize(2);
+  tft.println(endTime - startTime);
   /*
   testtext(RED);
   delay(2000);
@@ -68,6 +84,7 @@ void setup(void) {
   testRoundRect();
   delay(500); 
   */
+  /*
   uint16_t color = BLUE;
   startTime = millis();
   tft.fillScreen(color);
@@ -87,6 +104,7 @@ void setup(void) {
   tft.setCursor(10, 120);
   tft.println(endTime - startTime);
   tft.println(" ");
+  */
 }
 
 void loop(void) {
@@ -107,7 +125,7 @@ void testFillRoundRect() {
   tft.fillScreen(BLACK);
   
   for (uint16_t x=tft.width(); x > 20 ; x-=6) {
-    tft.fillRoundRect(tft.width()/2 -x/2, tft.height()/2 -x/2 , x, x, x/8,  tft.Color565(0, 0, x));
+    tft.fillRoundRect(tft.width()/2 -x/2, tft.height()/2 -x/2 , x, x, x/8,  tft.color565(0, 0, x));
  }
 }
 
@@ -115,7 +133,7 @@ void testRoundRect() {
   tft.fillScreen(BLACK);
   
   for (uint16_t x=0; x < tft.width(); x+=6) {
-    tft.drawRoundRect(tft.width()/2 -x/2, tft.height()/2 -x/2 , x, x, x/8, tft.Color565(x, 0, 0));
+    tft.drawRoundRect(tft.width()/2 -x/2, tft.height()/2 -x/2 , x, x, x/8, tft.color565(x, 0, 0));
  }
 }
 
@@ -124,7 +142,7 @@ void testtriangles() {
   for (uint16_t i=0; i<tft.width()/2; i+=5) {
     tft.drawTriangle(tft.width()/2, tft.height()/2-i,
                      tft.width()/2-i, tft.height()/2+i,
-                     tft.width()/2+i, tft.height()/2+i, tft.Color565(0, 0, i));
+                     tft.width()/2+i, tft.height()/2+i, tft.color565(0, 0, i));
   }
 }
 
@@ -135,10 +153,10 @@ void testfilltriangles() {
     tft.fillTriangle(tft.width()/2, tft.height()/2-i,
                      tft.width()/2-i, tft.height()/2+i,
                      tft.width()/2+i, tft.height()/2+i, 
-                     tft.Color565(0, i, i));
+                     tft.color565(0, i, i));
     tft.drawTriangle(tft.width()/2, tft.height()/2-i,
                      tft.width()/2-i, tft.height()/2+i,
-                     tft.width()/2+i, tft.height()/2+i, tft.Color565(i, i, 0));    
+                     tft.width()/2+i, tft.height()/2+i, tft.color565(i, i, 0));    
   }
 }
 void testtext(uint16_t color) {

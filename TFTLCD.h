@@ -73,9 +73,10 @@ class TFTLCD : public Print {
  public:
   TFTLCD(uint8_t cs, uint8_t rs, uint8_t wr, uint8_t rd, uint8_t reset);
 
-  uint16_t Color565(uint8_t r, uint8_t g, uint8_t b);
+  uint16_t color565(uint8_t r, uint8_t g, uint8_t b);
 
   // drawing primitives!
+  void writePixel(uint16_t x, uint16_t y, uint16_t color);
   void fillScreen(uint16_t color);
   uint16_t lcdGetPixel(uint16_t x, uint16_t y);
   
@@ -106,7 +107,8 @@ class TFTLCD : public Print {
   void drawString(uint16_t x, uint16_t y, char *c, uint16_t color, uint8_t s = 1);
 
   // commands
-  void initDisplay(void);
+  void initDisplay();
+  void initDisplay(boolean fill, uint16_t color);
   void goTo(int x, int y);
 
   void reset(void);
