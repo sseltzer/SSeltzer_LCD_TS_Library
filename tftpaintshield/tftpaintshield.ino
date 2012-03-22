@@ -54,7 +54,7 @@ void setup(void) {
   //if (identifier == 0x9325) Serial.println("Found ILI9325");
 
   tft.initDisplay(); 
-  tft.fillScreen(BLACK);
+  //tft.fillScreen(BLACK);
   
   tft.fillRect(0, 0, BOXSIZE, BOXSIZE, RED);
   tft.fillRect(BOXSIZE, 0, BOXSIZE, BOXSIZE, YELLOW);
@@ -78,31 +78,18 @@ void loop()
   digitalWrite(13, HIGH);
   Point p = ts.getPoint();
   digitalWrite(13, LOW);
-  pinMode(XM, OUTPUT);
-  pinMode(YP, OUTPUT);
-
+  digitalWrite(XM, HIGH);
+  digitalWrite(YP, HIGH);
   if (p.z > MINPRESSURE && p.z < MAXPRESSURE) {
-  /*
-    Serial.print("X: ");
-    Serial.println(p.x);
-    Serial.print("Y: ");
-    Serial.println(p.y);
-    Serial.print("Z: ");
-    Serial.println(p.z);
-	*/
+	
     if (p.y < (TS_MINY-5)) tft.fillRect(0, BOXSIZE, tft.width(), tft.height()-BOXSIZE, BLACK);
+    
     // turn from 0->1023 to tft.width
     p.x = map(p.x, TS_MINX, TS_MAXX, tft.width(), 0);
     p.y = map(p.y, TS_MINY, TS_MAXY, tft.height(), 0);
-    /*
-    Serial.print("("); Serial.print(p.x);
-    Serial.print(", "); Serial.print(p.y);
-    Serial.println(")");
-    */
+    
     if (p.y < BOXSIZE) {
        oldcolor = currentcolor;
- 
-  
        if (p.x < BOXSIZE) { 
          currentcolor = RED; 
          tft.drawRect(0, 0, BOXSIZE, BOXSIZE, WHITE);
@@ -127,7 +114,6 @@ void loop()
          currentcolor = MAGENTA; 
          tft.drawRect(BOXSIZE*5, 0, BOXSIZE, BOXSIZE, WHITE);
        }
-       
        if (oldcolor != currentcolor) {
           if (oldcolor == RED) tft.fillRect(0, 0, BOXSIZE, BOXSIZE, RED);
           if (oldcolor == YELLOW) tft.fillRect(BOXSIZE, 0, BOXSIZE, BOXSIZE, YELLOW);

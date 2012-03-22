@@ -91,5 +91,9 @@ Point TouchScreen::getPoint(void) {
   if (_resistanceX != 0) z = ((((sample2 / sample1) - 1) * x * _resistanceX) / 1024);
   else z = (1023 - (sample2 - sample1));
 
+  pinMode(_xp, OUTPUT);
+  pinMode(_xm, OUTPUT);
+  pinMode(_yp, OUTPUT);
+  pinMode(_ym, OUTPUT);
   return Point(x, y, z);
 }

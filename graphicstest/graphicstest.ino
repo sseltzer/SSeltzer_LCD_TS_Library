@@ -41,10 +41,21 @@ TFTLCD tft(LCD_CS, LCD_RS, LCD_WR, LCD_RD, LCD_RESET);
 unsigned long startTime = 0;
 unsigned long endTime = 0;
 
+// 45506
+// 20018 ms new code
 void setup(void) {
   tft.initDisplay();
+  startTime = millis();
+  tft.fillScreen(GREEN);
+  endTime = millis();
+  tft.setCursor(10, 100);
+  tft.setTextSize(2);
+  tft.println(endTime - startTime);
+/*
+
+  //tft.initDisplay();
+  /*
   startTime = micros();
-  tft.fillScreen(MAGENTA);
   endTime = micros();
   tft.setCursor(10, 50);
   tft.setTextSize(2);
@@ -64,8 +75,11 @@ void setup(void) {
     break;
     }
   }
-  
+  */
   /*
+  startTime = millis();
+  tft.reset();
+  tft.initDisplay();
   testtext(RED);
   delay(2000);
   testlines(CYAN);
@@ -86,7 +100,12 @@ void setup(void) {
   delay(500); 
   testRoundRect();
   delay(500); 
-  
+  testFillRoundRect();
+  endTime = millis();
+  tft.setCursor(10, 50);
+  tft.setTextSize(2);
+  tft.println(endTime - startTime);
+  */
   /*
   uint16_t color = BLUE;
   startTime = millis();
@@ -128,7 +147,7 @@ void testFillRoundRect() {
   tft.fillScreen(BLACK);
   
   for (uint16_t x=tft.width(); x > 20 ; x-=6) {
-    tft.fillRoundRect(tft.width()/2 -x/2, tft.height()/2 -x/2 , x, x, x/8,  tft.color565(0, 0, x));
+    tft.fillRoundRect(tft.width()/2 -x/2, tft.height()/2 -x/2 , x, x, x/8,  tft.color565(0, x, 0));
  }
 }
 
@@ -215,10 +234,7 @@ void testfastlines(uint16_t color1, uint16_t color2) {
    for (uint16_t x=0; x < tft.width(); x+=5) {
      tft.drawVerticalLine(x, 0, tft.height(), color2);
    }
-}
-void testFastLine(uint16_t color) {
-  int i = 320;
-  while(i--) tft.drawFastLine(0, i, 240, color, 0);
+  
 }
 
 void testlines(uint16_t color) {
@@ -273,4 +289,3 @@ void testBars() {
     }
   }
 }
-
