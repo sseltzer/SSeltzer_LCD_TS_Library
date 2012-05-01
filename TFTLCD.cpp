@@ -43,17 +43,13 @@ TFTLCD::TFTLCD(uint8_t cs, uint8_t cd, uint8_t wr, uint8_t rd, uint8_t reset) {
   rotation = 0;
   _width  = TFTWIDTH;
   _height = TFTHEIGHT;
-  
-  // Map the ports and pins
-  csport = digitalPinToPort(_cs);
-  rsport = digitalPinToPort(_rs);
-  wrport = digitalPinToPort(_wr);
-  rdport = digitalPinToPort(_rd);
 
   cspin  = digitalPinToBitMask(_cs);
   rspin  = digitalPinToBitMask(_rs);
   wrpin  = digitalPinToBitMask(_wr);
   rdpin  = digitalPinToBitMask(_rd);
+  ncspin = ~cspin;
+  nrspin = ~rspin;
   nwrpin = ~wrpin; // These save tons and tons of execution cycles
   nrdpin = ~rdpin;
   
@@ -83,10 +79,10 @@ TFTLCD::TFTLCD(uint8_t cs, uint8_t cd, uint8_t wr, uint8_t rd, uint8_t reset) {
     Initializes the ILI9325 with a low input. Be sure to execute a power-on reset after supplying power.
   */
   
-  *portOutputRegister(csport) |= cspin;
-  *portOutputRegister(rsport) |= rspin;
-  *portOutputRegister(rdport) |= rdpin;
-  *portOutputRegister(wrport) |= wrpin;
+  PORTC |= cspin;                         // Chip Select HIGH
+  PORTC |= rspin;                         // Register Select Pin HIGH
+  PORTC |= wrpin;                         // Write Pin HIGH
+  PORTC |= rdpin;                         // Read Pin HIGH
   digitalWrite(_reset, HIGH); // No need to map this
    
   cursor_y = cursor_x = 0;
@@ -203,64 +199,74 @@ void TFTLCD::writePixel(uint16_t x, uint16_t y, uint16_t color, bool rotflag) {
     }
   }
   if ((x >= TFTWIDTH) || (y >= TFTHEIGHT)) return;
-  
-  volatile uint8_t *wrportreg = portOutputRegister(wrport);
   uint8_t dataD = PORTD & BMASK;
   uint8_t dataB = PORTB & DMASK;
-  *portOutputRegister(csport) &= ~cspin;  // LOW
+  PORTC &= ncspin;                        // Chip Select Pin LOW
   
   // Write the command.
-  *portOutputRegister(rsport) &= ~rspin;  // Register Select Pin LOW
+  PORTC &= nrspin;                        // Register Select Pin LOW
   PORTD = dataD;                          // 0x0020 (Low byte is 0, simplify logic - set it equal to the preserved values of PORTD and PORTB).
   PORTB = dataB;                          // 0x0020 (Low byte is 0, simplify logic - set it equal to the preserved values of PORTD and PORTB).
-  *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+  PORTC &= nwrpin;                        // Strobe Write Pin
+  PORTC |= wrpin;                         // Strobe Write Pin
   PORTB |= TFTLCD_GRAM_HOR_AD;            // 0x0020 (PORTD does not need to change. Since PORTB == preserved values of the port, we can just | it with 0x20)
-  *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+  PORTC &= nwrpin;                        // Strobe Write Pin
+  PORTC |= wrpin;                         // Strobe Write Pin
   
   // Write the data.
-  *portOutputRegister(rsport) |= rspin;   // Register Select Pin HIGH
-  PORTD = dataD;
-  PORTB = dataB;
-  *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
-  PORTD = dataD | (x & DMASK);
-  PORTB = dataB | (x & BMASK);
-  *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+  PORTC |= rspin;                         // Register Select Pin HIGH
+  PORTD = dataD;                          // Data High Byte
+  PORTB = dataB;                          // Data High Byte
+  PORTC &= nwrpin;                        // Strobe Write Pin
+  PORTC |= wrpin;                         // Strobe Write Pin
+  PORTD = dataD | (x & DMASK);            // Data Low Byte
+  PORTB = dataB | (x & BMASK);            // Data Low Byte
+  PORTC &= nwrpin;                        // Strobe Write Pin
+  PORTC |= wrpin;                         // Strobe Write Pin
   
   // Write the command.
-  *portOutputRegister(rsport) &= ~rspin; // Register Select Pin LOW
-  PORTD = dataD;
-  PORTB = dataB;
-  *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
-  PORTB |= TFTLCD_GRAM_VER_AD;
-  *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+  PORTC &= nrspin;                        // Register Select Pin LOW
+  PORTD = dataD;                          // Data High Byte
+  PORTB = dataB;                          // Data High Byte
+  PORTC &= nwrpin;                        // Strobe Write Pin
+  PORTC |= wrpin;                         // Strobe Write Pin
+  PORTB |= TFTLCD_GRAM_VER_AD;            // Data Low Byte
+  PORTC &= nwrpin;                        // Strobe Write Pin
+  PORTC |= wrpin;                         // Strobe Write Pin
   
   // Write the data.
-  *portOutputRegister(rsport) |= rspin; // Register Select Pin HIGH
-  PORTD = dataD | ((y >> 8) & DMASK);
-  PORTB = dataB | ((y >> 8) & BMASK);
-  *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
-  PORTD = dataD | (y & DMASK);
-  PORTB = dataB | (y & BMASK);
-  *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+  PORTC |= rspin;                         // Register Select Pin HIGH
+  PORTD = dataD | ((y >> 8) & DMASK);     // Data High Byte
+  PORTB = dataB | ((y >> 8) & BMASK);     // Data High Byte
+  PORTC &= nwrpin;                        // Strobe Write Pin
+  PORTC |= wrpin;                         // Strobe Write Pin
+  PORTD = dataD | (y & DMASK);            // Data Low Byte
+  PORTB = dataB | (y & BMASK);            // Data Low Byte
+  PORTC &= nwrpin;                        // Strobe Write Pin
+  PORTC |= wrpin;                         // Strobe Write Pin
   
   // Write the command.
-  *portOutputRegister(rsport) &= ~rspin; // Register Select Pin LOW
-  PORTD = dataD;
-  PORTB = dataB;
-  *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
-  PORTB |= TFTLCD_RW_GRAM;
-  *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+  PORTC &= nrspin;                        // Register Select Pin LOW
+  PORTD = dataD;                          // Data High Byte
+  PORTB = dataB;                          // Data High Byte
+  PORTC &= nwrpin;                        // Strobe Write Pin
+  PORTC |= wrpin;                         // Strobe Write Pin
+  PORTB |= TFTLCD_RW_GRAM;                // Data Low Byte
+  PORTC &= nwrpin;                        // Strobe Write Pin
+  PORTC |= wrpin;                         // Strobe Write Pin
   
   // Write the data.
-  *portOutputRegister(rsport) |= rspin; // Register Select Pin HIGH
-  PORTD = dataD | ((color >> 8) & DMASK);
-  PORTB = dataB | ((color >> 8) & BMASK);
-  *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
-  PORTD = dataD | (color & DMASK);
-  PORTB = dataB | (color & BMASK);
-  *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+  PORTC |= rspin;                         // Register Select Pin HIGH
+  PORTD = dataD | ((color >> 8) & DMASK); // Data High Byte
+  PORTB = dataB | ((color >> 8) & BMASK); // Data High Byte
+  PORTC &= nwrpin;                        // Strobe Write Pin
+  PORTC |= wrpin;                         // Strobe Write Pin
+  PORTD = dataD | (color & DMASK);        // Data Low Byte
+  PORTB = dataB | (color & BMASK);        // Data Low Byte
+  PORTC &= nwrpin;                        // Strobe Write Pin
+  PORTC |= wrpin;                         // Strobe Write Pin
   
-  *portOutputRegister(csport) |= cspin; // HIGH
+  PORTC |= cspin;                         // Chip Select HIGH
 }
 
 uint16_t TFTLCD::readPixel(uint16_t x, uint16_t y) {
@@ -270,80 +276,86 @@ uint16_t TFTLCD::readPixel(uint16_t x, uint16_t y) {
 }
 
 void TFTLCD::writeRegister(uint16_t address) {
-  volatile uint8_t *wrportreg = portOutputRegister(wrport);
-  *portOutputRegister(csport) &= ~cspin;  // LOW
+  PORTC &= ncspin;                        // Chip Select Pin LOW
   
-  *portOutputRegister(rsport) &= ~rspin;  // Register Select Pin LOW
+  PORTC &= nrspin;                        // Register Select Pin LOW
   PORTD = (PORTD & BMASK) | ((address >> 8) & DMASK);
   PORTB = (PORTB & DMASK) | ((address >> 8) & BMASK);
-  *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+  PORTC &= nwrpin;                        // Strobe Write Pin
+  PORTC |= wrpin;                         // Strobe Write Pin
   PORTD = (PORTD & BMASK) | (address & DMASK);
   PORTB = (PORTB & DMASK) | (address & BMASK);
-  *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+  PORTC &= nwrpin;                        // Strobe Write Pin
+  PORTC |= wrpin;                         // Strobe Write Pin
   
-  *portOutputRegister(csport) |= cspin; // HIGH
+  PORTC |= cspin;                         // Chip Select HIGH
 }
 
 void TFTLCD::writeRegister(uint16_t address, uint16_t data) {
-  volatile uint8_t *wrportreg = portOutputRegister(wrport);
-  *portOutputRegister(csport) &= ~cspin;  // LOW
+  PORTC &= ncspin;                        // Chip Select Pin LOW
   
   // Write the address.
-  *portOutputRegister(rsport) &= ~rspin;  // Register Select Pin LOW
+  PORTC &= nrspin;                        // Register Select Pin LOW
   PORTD = (PORTD & BMASK) | ((address >> 8) & DMASK);
   PORTB = (PORTB & DMASK) | ((address >> 8) & BMASK);
-  *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+  PORTC &= nwrpin;                        // Strobe Write Pin
+  PORTC |= wrpin;                         // Strobe Write Pin
   PORTD = (PORTD & BMASK) | (address & DMASK);
   PORTB = (PORTB & DMASK) | (address & BMASK);
-  *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+  PORTC &= nwrpin;                        // Strobe Write Pin
+  PORTC |= wrpin;                         // Strobe Write Pin
   
   // Write the data.
-  *portOutputRegister(rsport) |= rspin; // Register Select Pin HIGH
+  PORTC |= rspin;                         // Register Select Pin HIGH
   PORTD = (PORTD & BMASK) | ((data >> 8) & DMASK);
   PORTB = (PORTB & DMASK) | ((data >> 8) & BMASK);
-  *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+  PORTC &= nwrpin;                        // Strobe Write Pin
+  PORTC |= wrpin;                         // Strobe Write Pin
   PORTD = (PORTD & BMASK) | (data & DMASK);
   PORTB = (PORTB & DMASK) | (data & BMASK);
-  *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+  PORTC &= nwrpin;                        // Strobe Write Pin
+  PORTC |= wrpin;                         // Strobe Write Pin
   
-  *portOutputRegister(csport) |= cspin; // HIGH
+  PORTC |= cspin;                         // Chip Select HIGH
 }
 
 void TFTLCD::writeData(uint16_t data) {
-  volatile uint8_t *wrportreg = portOutputRegister(wrport);
-  *portOutputRegister(csport) &= ~cspin;  // LOW
-  *portOutputRegister(rsport) |= rspin; // Register Select Pin HIGH
+  PORTC &= ncspin;                        // Chip Select Pin LOW
+  
+  PORTC |= rspin;                         // Register Select Pin HIGH
   PORTD = (PORTD & BMASK) | ((data >> 8) & DMASK);
   PORTB = (PORTB & DMASK) | ((data >> 8) & BMASK);
-  *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+  PORTC &= nwrpin;                        // Strobe Write Pin
+  PORTC |= wrpin;                         // Strobe Write Pin
   PORTD = (PORTD & BMASK) | (data & DMASK);
   PORTB = (PORTB & DMASK) | (data & BMASK);
-  *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
-  *portOutputRegister(csport) |= cspin; // HIGH
+  PORTC &= nwrpin;                        // Strobe Write Pin
+  PORTC |= wrpin;                         // Strobe Write Pin
+  
+  PORTC |= cspin;                         // Chip Select HIGH
 }
 
 uint16_t TFTLCD::readRegister(uint16_t address) {
   writeRegister(address);
-  *portOutputRegister(csport) &= ~cspin;
-  *portOutputRegister(rsport) |= rspin;
-  volatile uint8_t *rdportreg = portOutputRegister(rdport);
+  PORTC &= ncspin;                        // Chip Select Pin LOW
+  PORTC |= rspin;                         // Register Select Pin HIGH
   DDRB &= ~BMASK;
   DDRD &= ~DMASK; 
   
-  *rdportreg &= nrdpin;
+  PORTC &= nrdpin;
   // Made the delay a little longer, reading wasn't 100% reliable.
   delayMicroseconds(100); // Data wont read correctly without the delay.
   uint16_t d = (PIND & DMASK) | (PINB & BMASK);
   d <<= 8;
-  *rdportreg |= rdpin;
+  PORTC |= rdpin;
   
-  *rdportreg &= nrdpin;
+  PORTC &= nrdpin;
   // Made the delay a little longer, reading wasn't 100% reliable.
   delayMicroseconds(100); // Data wont read correctly without the delay.
   d |= (PIND & DMASK) | (PINB & BMASK);
-  *rdportreg |= rdpin;
+  PORTC |= rdpin;
   
-  *portOutputRegister(csport) |= cspin;
+  PORTC |= cspin;                         // Chip Select HIGH
   DDRB |= BMASK;
   DDRD |= DMASK;
   return d;
@@ -364,36 +376,43 @@ void  TFTLCD::fillScreen(uint16_t color) {
 	for any color. Draw time for the previous fillScreen function was ~569 ms.
   */
   uint32_t i = 19200; // 320 * 240 / 4.
-  volatile uint8_t *wrportreg = portOutputRegister(wrport);
-  *portOutputRegister(rsport) |= rspin;
-  *portOutputRegister(csport) &= ~cspin;
+  PORTC |= rspin;                           // Register Select Pin HIGH
+  PORTC &= ncspin;                          // Chip Select Pin LOW
   while (i--) {
-    PORTD = portd_highbyte; // Send high byte over port D. (LCD_DATA_5_5V, LCD_DATA_7_5V, LCD_DATA_8_5V)
-    PORTB = portb_highbyte; // Send high byte over port B. (LCD_DATA_1_5V, LCD_DATA_2_5V, LCD_DATA_3_5V, LCD_DATA_4_5V, LCD_DATA_6_5V)
-    *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
-    PORTD = portd_lowbyte;  // Send low byte over port D.
-    PORTB = portb_lowbyte;  // Send low byte over port B.
-    *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+    PORTD = portd_highbyte;                 // Send high byte over port D. (LCD_DATA_5_5V, LCD_DATA_7_5V, LCD_DATA_8_5V)
+    PORTB = portb_highbyte;                 // Send high byte over port B. (LCD_DATA_1_5V, LCD_DATA_2_5V, LCD_DATA_3_5V, LCD_DATA_4_5V, LCD_DATA_6_5V)
+    PORTC &= nwrpin;                        // Strobe Write Pin
+    PORTC |= wrpin;                         // Strobe Write Pin
+    PORTD = portd_lowbyte;                  // Send low byte over port D.
+    PORTB = portb_lowbyte;                  // Send low byte over port B.
+    PORTC &= nwrpin;                        // Strobe Write Pin
+    PORTC |= wrpin;                         // Strobe Write Pin
     PORTD = portd_highbyte;
     PORTB = portb_highbyte;
-    *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+    PORTC &= nwrpin;                        // Strobe Write Pin
+    PORTC |= wrpin;                         // Strobe Write Pin
     PORTD = portd_lowbyte;
     PORTB = portb_lowbyte;
-    *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+    PORTC &= nwrpin;                        // Strobe Write Pin
+    PORTC |= wrpin;                         // Strobe Write Pin
     PORTD = portd_highbyte;
     PORTB = portb_highbyte;
-    *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+    PORTC &= nwrpin;                        // Strobe Write Pin
+    PORTC |= wrpin;                         // Strobe Write Pin
     PORTD = portd_lowbyte;
     PORTB = portb_lowbyte;
-    *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+    PORTC &= nwrpin;                        // Strobe Write Pin
+    PORTC |= wrpin;                         // Strobe Write Pin
     PORTD = portd_highbyte;
     PORTB = portb_highbyte;
-    *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+    PORTC &= nwrpin;                        // Strobe Write Pin
+    PORTC |= wrpin;                         // Strobe Write Pin
     PORTD = portd_lowbyte;
     PORTB = portb_lowbyte;
-    *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+    PORTC &= nwrpin;                        // Strobe Write Pin
+    PORTC |= wrpin;                         // Strobe Write Pin
   }
-  *portOutputRegister(csport) |= cspin;
+  PORTC |= cspin;                         // Chip Select HIGH
 }
 /*
   Slightly improved. 370 ms for a screen fill, down to 298 ms. It would be significant 
@@ -424,25 +443,26 @@ void TFTLCD::drawFastLine(uint16_t x, uint16_t y, uint16_t length, uint16_t colo
     break;
   }
   writeRegister(TFTLCD_ENTRY_MOD, entryMode);
-  writeRegister(TFTLCD_GRAM_HOR_AD, x); // GRAM Address Set (Horizontal Address) (R20h)
-  writeRegister(TFTLCD_GRAM_VER_AD, y); // GRAM Address Set (Vertical Address) (R21h)
-  writeRegister(TFTLCD_RW_GRAM);  // Write Data to GRAM (R22h)
-  volatile uint8_t *wrportreg = portOutputRegister(wrport);
-  *portOutputRegister(rsport) |= rspin; // Register Select Pin HIGH
-  uint8_t portd_highbyte = (PORTD & BMASK) | ((color >> 8) & DMASK);
-  uint8_t portb_highbyte = (PORTB & DMASK) | ((color >> 8) & BMASK);
-	uint8_t portd_lowbyte  = (PORTD & BMASK) | (color & DMASK);
-	uint8_t portb_lowbyte  = (PORTB & DMASK) | (color & BMASK);
-  *portOutputRegister(csport) &= ~cspin;  // LOW
+  writeRegister(TFTLCD_GRAM_HOR_AD, x);       // GRAM Address Set (Horizontal Address) (R20h)
+  writeRegister(TFTLCD_GRAM_VER_AD, y);       // GRAM Address Set (Vertical Address) (R21h)
+  writeRegister(TFTLCD_RW_GRAM);              // Write Data to GRAM (R22h)
+  PORTC |= rspin;                             // Register Select Pin HIGH
+  uint8_t portd_highbyte = (PORTD & BMASK) | ((color >> 8) & DMASK); // Data High Byte
+  uint8_t portb_highbyte = (PORTB & DMASK) | ((color >> 8) & BMASK); // Data High Byte
+	uint8_t portd_lowbyte  = (PORTD & BMASK) | (color & DMASK);        // Data Low Byte
+	uint8_t portb_lowbyte  = (PORTB & DMASK) | (color & BMASK);        // Data Low Byte
+  PORTC &= ncspin;                            // Chip Select Pin LOW
   while (length--) {
-    PORTD = portd_highbyte;
-    PORTB = portb_highbyte;
-    *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
-    PORTD = portd_lowbyte;
-    PORTB = portb_lowbyte;
-    *wrportreg |= (*wrportreg &= nwrpin); // Strobe Write Pin
+    PORTD = portd_highbyte;                   // Data High Byte
+    PORTB = portb_highbyte;                   // Data High Byte
+    PORTC &= nwrpin;                          // Strobe Write Pin
+    PORTC |= wrpin;                           // Strobe Write Pin
+    PORTD = portd_lowbyte;                    // Data Low Byte
+    PORTB = portb_lowbyte;                    // Data Low Byte
+    PORTC &= nwrpin;                          // Strobe Write Pin
+    PORTC |= wrpin;                           // Strobe Write Pin
   }
-  *portOutputRegister(csport) |= cspin; // HIGH
+  PORTC |= cspin;                           // Chip Select HIGH
   writeRegister(TFTLCD_ENTRY_MOD, 0x1030);
 }
 

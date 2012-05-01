@@ -43,10 +43,12 @@ unsigned long endTime = 0;
 
 // 45506
 // 20018 ms new code
+// 14246 ms New new code
 void setup(void) {
+/*
   tft.initDisplay();
   startTime = millis();
-  tft.fillScreen(GREEN);
+testFillRoundRect();
   endTime = millis();
   tft.setCursor(10, 100);
   tft.setTextSize(2);
@@ -76,7 +78,7 @@ void setup(void) {
     }
   }
   */
-  /*
+
   startTime = millis();
   tft.reset();
   tft.initDisplay();
@@ -105,7 +107,7 @@ void setup(void) {
   tft.setCursor(10, 50);
   tft.setTextSize(2);
   tft.println(endTime - startTime);
-  */
+  //*/
   /*
   uint16_t color = BLUE;
   startTime = millis();

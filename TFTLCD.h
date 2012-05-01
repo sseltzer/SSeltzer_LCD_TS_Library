@@ -120,7 +120,7 @@ class TFTLCD : public Print {
   uint8_t _cs, _rs, _reset, _wr, _rd;
 
   uint8_t csport, rsport, wrport, rdport;
-  uint8_t cspin, rspin, wrpin, nwrpin, rdpin, nrdpin;
+  uint8_t cspin, ncspin, rspin, nrspin, wrpin, nwrpin, rdpin, nrdpin;
 
   uint16_t _width, _height;
   uint8_t textsize;
